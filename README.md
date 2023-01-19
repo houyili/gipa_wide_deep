@@ -11,12 +11,17 @@
 + numpy=1.20.2
 
 ## Basic commandline arguments
-$DARA_DIR : Your data path to store ogbn-proteins data sets
+$DARA_DIR : Your data path to store ogbn-proteins dataset
 
 ## Commandline
 ```bash
 python -u ./train_gipa.py --root $DARA_DIR --advanced-optimizer --use-sparse-fea 
 ```
+or just
+```bash
+./run_deep_wide.sh
+```
+the ogbn-protein dataset would be downloaded into current path.
 
 ## Performance
 
