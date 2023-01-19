@@ -1,0 +1,28 @@
+cd "$(dirname $0)"
+python -u ./train_gipa.py \
+    --train-partition-num 6 \
+    --eval-partition-num 2 \
+    --eval-times 1 \
+    --lr 0.01 \
+    --advanced-optimizer \
+    --n-epochs 1500 \
+    --n-heads 20 \
+    --n-layers 6 \
+    --dropout 0.4 \
+    --n-hidden 50 \
+    --input-drop 0.4 \
+    --edge-drop 0.1 \
+    --edge-agg-mode "single_softmax" \
+    --edge-att-act "none" \
+    --norm none \
+    --edge-emb-size 16\
+    --gpu 0 \
+    --first-hidden 225 \
+    --use-sparse-fea \
+    --sparse-encoder "log" \
+    --n-deep-layers 6 \
+    --n-deep-hidden 200 \
+    --deep-drop-out 0.4 \
+    --deep-input-drop 0.1 \
+    --model "gipa_deep_wide" \
+    --log-file-name="run_default_wide_deep"
