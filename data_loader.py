@@ -65,7 +65,7 @@ def preprocess(graph, labels, edge_agg_as_feat=True, user_adj=False, user_avg=Fa
         is_log = sparse_encoder.find("log") > -1
         edge_sparse = trans_edge_fea_to_sparse(graph.edata['feat'], graph, simple_inter, is_log)
 
-        if len(sparse_encoder) > 0 and sparse_encoder.find("edge_sparse") != -1:
+        if sparse_encoder.find("edge_sparse") > -1:
             graph.edata.update({"feat": edge_sparse})
         del graph.edata["sparse"]
 

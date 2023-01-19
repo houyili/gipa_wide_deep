@@ -72,7 +72,7 @@ def evaluate(args, graph, model, labels, train_idx, val_idx, test_idx, criterion
 def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running, log_f):
     # generate model
     criterion = nn.BCEWithLogitsLoss()
-    model = get_model(args, n_edge_feats, n_node_feats, n_classes, n_node_sparse_feats).to(device)
+    model = get_model(args, n_node_feats, n_edge_feats, n_classes, n_node_sparse_feats).to(device)
 
     def evaluator_wrapper(scores, real_scores):
         return evaluator.eval({"y_pred": scores, "y_true": real_scores})["rocauc"]
