@@ -171,7 +171,6 @@ def main():
     argparser.add_argument("--first-layer-act", type=str, default="relu", choices=act_set)
     argparser.add_argument("--feature-drop", type=float, default=0.0, help="raw feature drop rate")
     argparser.add_argument("--last-layer-drop", type=float, default=-1.0, help="last layer drop rate")
-
     argparser.add_argument("--n-deep-layers", type=int, default=6, help="number of deep layers, work only wide deep")
     argparser.add_argument("--n-deep-hidden", type=int, default=200,
                            help="number of deep hidden units, work only wide deep")
