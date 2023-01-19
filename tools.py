@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import dgl
 import torch.nn.functional as F
-from model_gipa import GipaWide, GipaDeep, GipaWideDeep2
+from model_gipa import GipaWide, GipaDeep, GipaWideDeep
 
 def random_subgraph(num_clusters, graph, shuffle=True, save_e=[]):
     if shuffle:
@@ -95,7 +95,7 @@ def get_model(args, n_node_feats, n_edge_feats, n_classes, n_node_sparse_feats):
             edge_prop_size=20
         )
     elif args.model == "gipa_wide_deep" or args.model == "gipa_deep_wide":
-        model = GipaWideDeep2(
+        model = GipaWideDeep(
             n_node_feats,
             n_node_sparse_feats,
             n_edge_feats,

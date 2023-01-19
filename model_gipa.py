@@ -5,7 +5,6 @@ from dgl import function as fn
 from dgl.ops import edge_softmax
 from dgl.utils import expand_as_pair
 
-
 def get_act_by_str(name: str, negative_slope: float = 0):
     if name == "leaky_relu":
         res = nn.LeakyReLU(negative_slope, inplace=True)
@@ -588,143 +587,7 @@ class GipaDeep(nn.Module):
         return res
 
 
-class GipaWideDeep(GipaWide):
-    def __init__(self,
-                node_feats,
-                sparse_node_feats,
-                edge_feats,
-                n_classes,
-                n_layers,
-                n_deep_layers,
-                n_heads,
-                n_hidden,
-                n_deep_hidden,
-                edge_emb,
-                activation,
-                dropout,
-                deep_drop_out,
-                input_drop,
-                deep_input_drop,
-                edge_drop,
-                use_attn_dst=True,
-                allow_zero_in_degree=False,
-                norm="none",
-                batch_norm=True,
-                edge_att_act="leaky_relu",
-                edge_agg_mode="none_softmax",
-                use_node_sparse = False,
-                input_norm = False,
-                first_hidden = 150,
-                first_layer_act = "relu",
-                first_layer_drop = 0.1,
-                first_layer_norm = False,
-                last_layer_drop = -1,
-                use_att_edge=True,
-                use_prop_edge=False,
-                edge_prop_size = 20):
-        super(GipaWideDeep, self).__init__(sparse_node_feats,
-                                           edge_feats,
-                                           n_classes,
-                                           n_layers,
-                                           n_heads,
-                                           n_hidden,
-                                           edge_emb,
-                                           activation,
-                                           dropout,
-                                           input_drop,
-                                           edge_drop,
-                                           use_attn_dst,
-                                           allow_zero_in_degree,
-                                           norm,
-                                           batch_norm,
-                                           edge_att_act,
-                                           edge_agg_mode,
-                                           use_node_sparse,
-                                           input_norm,
-                                           first_hidden,
-                                           first_layer_act,
-                                           first_layer_drop,
-                                           first_layer_norm,
-                                           last_layer_drop)
-        self.n_deep_layers = n_deep_layers
-
-        self.d_convs = nn.ModuleList()
-        self.d_norms = nn.ModuleList()
-
-        self.d_node_encoder = nn.Linear(node_feats, first_hidden)
-
-        if self.has_edge:
-            self.d_edge_encoder = nn.ModuleList()
-            self.d_edge_norms = nn.ModuleList()
-
-        for i in range(n_deep_layers):
-            in_hidden = n_hidden if i > 0 else first_hidden
-            out_hidden = n_hidden
-
-            if edge_emb > 0:
-                self.d_edge_encoder.append(nn.Linear(edge_feats, edge_emb))
-                self.d_edge_norms.append(nn.BatchNorm1d(edge_emb))
-            self.d_convs.append(
-                GIPADeepConv(
-                    in_hidden,
-                    edge_emb,
-                    n_heads,
-                    n_deep_hidden,
-                    edge_drop=edge_drop,
-                    use_attn_dst=use_attn_dst,
-                    norm=norm,
-                    batch_norm=batch_norm, edge_att_act=edge_att_act,
-                    edge_agg_mode=edge_agg_mode,
-                    use_att_edge=use_att_edge,
-                    use_prop_edge=use_prop_edge,
-                    edge_prop_size=edge_prop_size
-                )
-            )
-            self.d_norms.append(nn.BatchNorm1d(out_hidden))
-
-        self.d_pred_linear = nn.Linear(n_hidden, n_classes)
-
-        self.d_input_drop = nn.Dropout(deep_input_drop)
-        self.d_dropout = nn.Dropout(deep_drop_out)
-        self.d_activation = activation
-
-    def forward(self, g):
-        if not isinstance(g, list):
-            subgraphs = [g] * self.n_layers
-        else:
-            subgraphs = g
-        res1 = super(GipaWideDeep, self).forward(subgraphs)
-        hidden = subgraphs[0].srcdata["feat"]
-
-        hidden = self.d_node_encoder(hidden)
-        hidden = F.relu(hidden, inplace=True)
-        hidden = self.d_input_drop(hidden)
-
-        last_hidden = None
-
-        for i in range(self.n_deep_layers):
-            if self.has_edge:
-                efeat = subgraphs[i].edata["feat"]
-                efeat_emb = self.d_edge_encoder[i](efeat)
-                efeat_emb = F.relu(efeat_emb, inplace=True)
-            else:
-                efeat_emb = None
-
-            hidden = self.d_convs[i](subgraphs[i], hidden, efeat_emb).flatten(1, -1)
-
-            if last_hidden is not None:
-                hidden += last_hidden[: hidden.shape[0], :]
-
-            last_hidden = hidden
-            hidden = self.d_norms[i](hidden)
-            hidden = self.d_activation(hidden, inplace=True)
-            hidden = self.d_dropout(hidden)
-
-        res2 = self.d_pred_linear(hidden)
-        return res1 + res2
-
-
-class GipaWideDeep2(nn.Module):
+class GipaWideDeep(nn.Module):
     def __init__(self,
                 node_feats,
                 sparse_node_feats,
@@ -757,7 +620,7 @@ class GipaWideDeep2(nn.Module):
                 use_att_edge=True,
                 use_prop_edge=False,
                 edge_prop_size = 20):
-        super(GipaWideDeep2, self).__init__()
+        super(GipaWideDeep, self).__init__()
         self.n_layers = n_layers
         self.wide_part = GipaWide(sparse_node_feats,
                                    edge_feats,

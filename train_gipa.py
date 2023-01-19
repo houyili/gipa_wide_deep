@@ -8,13 +8,12 @@ import time
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as func
 import torch.optim as optim
 from torch import nn
 
 from data_loader import load_data, preprocess
-from graph_sampler import random_subgraph
-from tools import count_model_parameters, print_msg_and_write, seed, get_model
+from tools import count_model_parameters, print_msg_and_write, seed, get_model, random_subgraph
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 device = None
@@ -67,14 +66,17 @@ def evaluate(args, graph, model, labels, train_idx, val_idx, test_idx, criterion
     val_score = evaluator(preds[val_idx], labels[val_idx])
     test_score = evaluator(preds[test_idx], labels[test_idx])
 
-    return (train_score, val_score, test_score, train_loss, val_loss, test_loss, preds)
+    return train_score, val_score, test_score, train_loss, val_loss, test_loss, preds
 
 
 def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running, log_f):
     # generate model
     criterion = nn.BCEWithLogitsLoss()
-    model = get_model(args, n_node_feats, n_edge_feats, n_classes, n_node_sparse_feats).to(device)
-    evaluator_wrapper = lambda pred, labels: evaluator.eval({"y_pred": pred, "y_true": labels})["rocauc"]
+    model = get_model(args, n_edge_feats, n_node_feats, n_classes, n_node_sparse_feats).to(device)
+
+    def evaluator_wrapper(scores, real_scores):
+        return evaluator.eval({"y_pred": scores, "y_true": real_scores})["rocauc"]
+
     title_msg = f"Number of node feature: {n_node_feats}\n" + f"Number of edge feature: {n_edge_feats}\n" + \
                 f"Number of params: {count_model_parameters(model)}\n"
     print_msg_and_write(title_msg, log_f)
@@ -83,7 +85,8 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
     lr_scheduler = None
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
     if args.advanced_optimizer:
-        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.75, patience=50, verbose=True)
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.75, patience=50,
+                                                            verbose=True)
 
     total_time, eval_time, eval_num, val_score, best_val_score, final_test_score, best_step = 0, 0, 0, 0, 0, 0, 0
     final_pred = None
@@ -96,7 +99,7 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
                     f"this epoch time: {time.time() - tic:.2f}s Train loss/score: {loss:.4f}/{t_score:.4f}\n"
         print_msg_and_write(train_msg, log_f)
 
-        if epoch == args.n_epochs or epoch % args.eval_every== 0 or epoch % args.log_every == 0:
+        if epoch == args.n_epochs or epoch % args.eval_every == 0 or epoch % args.log_every == 0:
             tic = time.time()
             train_score, val_score, test_score, train_loss, val_loss, test_loss, pred = evaluate(
                 args, graph, model, labels, train_idx, val_idx, test_idx, criterion, evaluator_wrapper)
@@ -122,7 +125,7 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
 
     if args.save_pred:
         os.makedirs("../output", exist_ok=True)
-        torch.save(F.sigmoid(final_pred), f"../output/{n_running}.pt")
+        torch.save(func.sigmoid(final_pred), f"../output/{n_running}.pt")
     return best_val_score, final_test_score
 
 
@@ -140,14 +143,15 @@ def main():
     argparser.add_argument("--n-epochs", type=int, default=1200, help="number of epochs")
     argparser.add_argument("--eval-times", type=int, default=1)
     argparser.add_argument("--advanced-optimizer", action="store_true")
-    argparser.add_argument("--train-partition-num", type=int, default=10,  help="number of partitions for training")
-    argparser.add_argument("--eval-partition-num", type=int, default=3,  help="number of partitions for evaluating")
+    argparser.add_argument("--train-partition-num", type=int, default=10, help="number of partitions for training")
+    argparser.add_argument("--eval-partition-num", type=int, default=3, help="number of partitions for evaluating")
     argparser.add_argument("--no-attn-dst", action="store_true", help="Don't use attn_dst.")
     argparser.add_argument("--n-heads", type=int, default=3, help="number of heads")
     argparser.add_argument("--norm", type=str, default="none", choices=["none", "adj", "avg"])
     argparser.add_argument("--disable-fea-trans-norm", action="store_true", help="disable batch norm in fea trans part")
     argparser.add_argument("--edge-att-act", type=str, default="leaky_relu", choices=act_set)
-    argparser.add_argument("--edge-agg-mode", type=str, default="none_softmax", choices=["single_softmax", "none_softmax"])
+    argparser.add_argument("--edge-agg-mode", type=str, default="none_softmax",
+                           choices=["single_softmax", "none_softmax"])
     argparser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     argparser.add_argument("--n-layers", type=int, default=6, help="number of layers")
     argparser.add_argument("--n-hidden", type=int, default=80, help="number of hidden units")
@@ -170,9 +174,11 @@ def main():
     argparser.add_argument("--last-layer-drop", type=float, default=-1.0, help="last layer drop rate")
 
     argparser.add_argument("--n-deep-layers", type=int, default=6, help="number of deep layers, work only wide deep")
-    argparser.add_argument("--n-deep-hidden", type=int, default=80, help="number of deep hidden units, work only wide deep")
+    argparser.add_argument("--n-deep-hidden", type=int, default=80,
+                           help="number of deep hidden units, work only wide deep")
     argparser.add_argument("--deep-drop-out", type=float, default=0.25, help="dropout rate, work only wide deep")
-    argparser.add_argument("--deep-input-drop", type=float, default=0.1, help="input layer drop rate, work only wide deep")
+    argparser.add_argument("--deep-input-drop", type=float, default=0.1,
+                           help="input layer drop rate, work only wide deep")
     args = argparser.parse_args()
     print(args)
 
@@ -185,7 +191,7 @@ def main():
     print("Loading data......")
     graph, labels, train_idx, val_idx, test_idx, evaluator = load_data(dataset, args.root)
     print("Preprocessing......")
-    graph, labels = preprocess(graph, labels, user_adj=args.norm=="adj", user_avg=args.norm=="avg",
+    graph, labels = preprocess(graph, labels, user_adj=args.norm == "adj", user_avg=args.norm == "avg",
                                sparse_encoder=args.sparse_encoder if args.use_sparse_fea else None)
     n_node_feats = graph.ndata["feat"].shape[-1]
     n_node_sparse_feats = graph.ndata["sparse"].shape[-1] if args.use_sparse_fea else graph.ndata["feat"].shape[-1]
@@ -194,13 +200,13 @@ def main():
     labels, train_idx, val_idx, test_idx = map(lambda x: x.to(device), (labels, train_idx, val_idx, test_idx))
 
     # run
-    val_scores, test_scores = [], []
-    version = str(int(time.time())) if args.log_file_name=="" else "%s_%d" %(args.log_file_name, int(time.time()))
-    os.makedirs("%s/log" % (args.root), exist_ok=True)
+    val_scores, test_scores = list(), list()
+    version = str(int(time.time())) if args.log_file_name == "" else "%s_%d" % (args.log_file_name, int(time.time()))
+    os.makedirs("%s/log" % args.root, exist_ok=True)
     for i in range(args.n_runs):
-        log_f = open("%s/log/%s_part%d.log" % (args.root, version, i) , mode='a')
+        log_f = open("%s/log/%s_part%d.log" % (args.root, version, i), mode='a')
         print_msg_and_write(args.__str__() + "\n", log_f)
-        print_msg_and_write("Running for seeds %d" %(args.seed + i), log_f)
+        print_msg_and_write("Running for seeds %d" % (args.seed + i), log_f)
         seed(args.seed + i)
         val_score, test_score = run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, i + 1, log_f)
         val_scores.append(val_score)
@@ -214,6 +220,7 @@ def main():
     print("Test scores:", test_scores)
     print(f"Average val score: {np.mean(val_scores)} ± {np.std(val_scores)}")
     print(f"Average test score: {np.mean(test_scores)} ± {np.std(test_scores)}")
+
 
 if __name__ == "__main__":
     main()

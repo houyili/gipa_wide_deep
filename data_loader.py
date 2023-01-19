@@ -2,12 +2,14 @@ import torch
 import dgl.function as fn
 from ogb.nodeproppred import DglNodePropPredDataset, Evaluator
 
+
 interval_0_1 = [0.001, 1]
 interval_3 = [0.001, 0.7, 1]
 interval_4 = [0.001, 0.1, 0.2, 1]
 interval_12 = [0.001, 0.07, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.7, 1]
 interval_15 = [0.001, 0.07, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 1]
-interval = [interval_0_1, interval_4, interval_0_1, interval_4, interval_12, interval_12, interval_3, interval_15]
+simple_inter = [interval_0_1, interval_4, interval_0_1, interval_4, interval_12, interval_12, interval_3, interval_15]
+
 
 def trans_edge_fea_to_sparse(raw_edge_fea, graph, interval: list, is_log=False):
     edge_fea_list = []
@@ -29,6 +31,7 @@ def trans_edge_fea_to_sparse(raw_edge_fea, graph, interval: list, is_log=False):
         del graph.ndata["sparse_f"]
     return sparse
 
+
 def compute_norm(graph):
     degs = graph.in_degrees().float().clamp(min=1)
     deg_isqrt = torch.pow(degs, -0.5)
@@ -37,6 +40,7 @@ def compute_norm(graph):
     deg_sqrt = torch.pow(degs, 0.5)
 
     return deg_sqrt, deg_isqrt
+
 
 def load_data(dataset, root_path):
     data = DglNodePropPredDataset(name=dataset, root=root_path)
@@ -52,13 +56,14 @@ def load_data(dataset, root_path):
           f"Test nodes: {len(test_idx)}")
     return graph, labels, train_idx, val_idx, test_idx, evaluator
 
+
 def preprocess(graph, labels, edge_agg_as_feat=True, user_adj=False, user_avg=False, sparse_encoder: str = None):
     if edge_agg_as_feat:
         graph.update_all(fn.copy_e("feat", "feat_copy"), fn.sum("feat_copy", "feat"))
 
     if sparse_encoder is not None and len(sparse_encoder) > 0:
         is_log = sparse_encoder.find("log") > -1
-        edge_sparse = trans_edge_fea_to_sparse(graph.edata['feat'], graph, interval, is_log)
+        edge_sparse = trans_edge_fea_to_sparse(graph.edata['feat'], graph, simple_inter, is_log)
 
         if len(sparse_encoder) > 0 and sparse_encoder.find("edge_sparse") != -1:
             graph.edata.update({"feat": edge_sparse})
