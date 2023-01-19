@@ -145,7 +145,7 @@ def main():
     argparser.add_argument("--train-partition-num", type=int, default=6, help="number of partitions for training")
     argparser.add_argument("--eval-partition-num", type=int, default=2, help="number of partitions for evaluating")
     argparser.add_argument("--no-attn-dst", action="store_true", help="Don't use attn_dst.")
-    argparser.add_argument("--n-heads", type=int, default=3, help="number of heads")
+    argparser.add_argument("--n-heads", type=int, default=20, help="number of heads")
     argparser.add_argument("--norm", type=str, default="none", choices=["none", "adj", "avg"])
     argparser.add_argument("--disable-fea-trans-norm", action="store_true", help="disable batch norm in fea trans part")
     argparser.add_argument("--edge-att-act", type=str, default="none", choices=act_set)
