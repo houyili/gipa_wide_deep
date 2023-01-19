@@ -1,5 +1,6 @@
 cd "$(dirname $0)"
 python -u ./train_gipa.py \
+    --root "/data/ogb/datasets/" \
     --train-partition-num 6 \
     --eval-partition-num 2 \
     --eval-times 1 \
