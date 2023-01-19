@@ -131,42 +131,41 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
 
 def main():
     global device, n_node_feats, n_edge_feats, n_classes, n_node_sparse_feats
-
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--model", type=str, default="gipa_simple", choices=["gipa_wide", "gipa_deep",
+    argparser.add_argument("--model", type=str, default="gipa_deep_wide", choices=["gipa_wide", "gipa_deep",
                                                                                 "gipa_deep_wide", "gipa_wide_deep"])
     argparser.add_argument("--root", type=str, default="/data/ogb/datasets/")
     argparser.add_argument("--cpu", action="store_true", help="CPU mode. This option overrides '--gpu'.")
     argparser.add_argument("--gpu", type=int, default=0, help="GPU device ID")
     argparser.add_argument("--seed", type=int, default=0, help="random seed")
     argparser.add_argument("--n-runs", type=int, default=10, help="running times")
-    argparser.add_argument("--n-epochs", type=int, default=1200, help="number of epochs")
+    argparser.add_argument("--n-epochs", type=int, default=1500, help="number of epochs")
     argparser.add_argument("--eval-times", type=int, default=1)
     argparser.add_argument("--advanced-optimizer", action="store_true")
-    argparser.add_argument("--train-partition-num", type=int, default=10, help="number of partitions for training")
-    argparser.add_argument("--eval-partition-num", type=int, default=3, help="number of partitions for evaluating")
+    argparser.add_argument("--train-partition-num", type=int, default=6, help="number of partitions for training")
+    argparser.add_argument("--eval-partition-num", type=int, default=2, help="number of partitions for evaluating")
     argparser.add_argument("--no-attn-dst", action="store_true", help="Don't use attn_dst.")
     argparser.add_argument("--n-heads", type=int, default=3, help="number of heads")
     argparser.add_argument("--norm", type=str, default="none", choices=["none", "adj", "avg"])
     argparser.add_argument("--disable-fea-trans-norm", action="store_true", help="disable batch norm in fea trans part")
-    argparser.add_argument("--edge-att-act", type=str, default="leaky_relu", choices=act_set)
-    argparser.add_argument("--edge-agg-mode", type=str, default="none_softmax",
+    argparser.add_argument("--edge-att-act", type=str, default="none", choices=act_set)
+    argparser.add_argument("--edge-agg-mode", type=str, default="single_softmax",
                            choices=["single_softmax", "none_softmax"])
-    argparser.add_argument("--lr", type=float, default=0.001, help="learning rate")
+    argparser.add_argument("--lr", type=float, default=0.01, help="learning rate")
     argparser.add_argument("--n-layers", type=int, default=6, help="number of layers")
-    argparser.add_argument("--n-hidden", type=int, default=80, help="number of hidden units")
-    argparser.add_argument("--dropout", type=float, default=0.25, help="dropout rate")
-    argparser.add_argument("--input-drop", type=float, default=0.1, help="input layer drop rate")
+    argparser.add_argument("--n-hidden", type=int, default=50, help="number of hidden units")
+    argparser.add_argument("--dropout", type=float, default=0.4, help="dropout rate")
+    argparser.add_argument("--input-drop", type=float, default=0.4, help="input layer drop rate")
     argparser.add_argument("--edge-drop", type=float, default=0.1, help="edge drop rate")
     argparser.add_argument("--eval-every", type=int, default=5, help="evaluate every EVAL_EVERY epochs")
     argparser.add_argument("--log-every", type=int, default=5, help="log every LOG_EVERY epochs")
     argparser.add_argument("--save-pred", action="store_true", help="save final predictions")
-    argparser.add_argument("--log-file-name", type=str, default="")
-    argparser.add_argument("--first-hidden", type=int, default=150, help="first layer size")
+    argparser.add_argument("--log-file-name", type=str, default="run_default_wide_deep")
+    argparser.add_argument("--first-hidden", type=int, default=225, help="first layer size")
     argparser.add_argument("--edge-emb-size", type=int, default=16)
     argparser.add_argument("--wd", type=float, default=0, help="weight decay")
     argparser.add_argument("--use-sparse-fea", action="store_true")
-    argparser.add_argument("--sparse-encoder", type=str, default="")
+    argparser.add_argument("--sparse-encoder", type=str, default="log")
     argparser.add_argument("--input-norm", action="store_true")
     argparser.add_argument("--first-layer-norm", action="store_true")
     argparser.add_argument("--first-layer-act", type=str, default="relu", choices=act_set)
@@ -174,9 +173,9 @@ def main():
     argparser.add_argument("--last-layer-drop", type=float, default=-1.0, help="last layer drop rate")
 
     argparser.add_argument("--n-deep-layers", type=int, default=6, help="number of deep layers, work only wide deep")
-    argparser.add_argument("--n-deep-hidden", type=int, default=80,
+    argparser.add_argument("--n-deep-hidden", type=int, default=200,
                            help="number of deep hidden units, work only wide deep")
-    argparser.add_argument("--deep-drop-out", type=float, default=0.25, help="dropout rate, work only wide deep")
+    argparser.add_argument("--deep-drop-out", type=float, default=0.4, help="dropout rate, work only wide deep")
     argparser.add_argument("--deep-input-drop", type=float, default=0.1,
                            help="input layer drop rate, work only wide deep")
     args = argparser.parse_args()
