@@ -69,7 +69,7 @@ def evaluate(args, graph, model, labels, train_idx, val_idx, test_idx, criterion
     return train_score, val_score, test_score, train_loss, val_loss, test_loss, preds
 
 
-def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running, log_f):
+def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running, log_f, version):
     # generate model
     criterion = nn.BCEWithLogitsLoss()
     model = get_model(args, n_node_feats, n_edge_feats, n_classes, n_node_sparse_feats).to(device)
@@ -108,15 +108,19 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
 
             if val_score > best_val_score:
                 best_val_score, final_test_score, final_pred, best_step = val_score, test_score, pred, epoch
+                if final_test_score > 0.8907 and args.save_pred:
+                    print_msg_and_write("Saving checkpoint at step %d" %epoch, log_f)
+                    torch.save(model.state_dict(), "%s/output/%s_part%d_epoch%d_auc%d_ckpt.pt"
+                               % (args.root, version, n_running, best_step, int(test_score * 1000)))
 
-            if epoch % args.log_every == 0:
-                out_msg = f"Run: {n_running}/{args.n_runs}, Epoch: {epoch}/{args.n_epochs}, " \
-                          f"Average Train epoch time: {total_time / epoch:.2f}s, " \
-                          f"Average Eval epoch time: {eval_time / eval_num:.2f}s\n" \
-                          f"Loss: {loss:.4f} Train/Val/Test loss: {train_loss:.4f}/{val_loss:.4f}/{test_loss:.4f}\n" \
-                          f"Train/Val/Test: {train_score:.4f}/{val_score:.4f}/{test_score:.4f}\n" \
-                          f"Best val/Final test score/Best Step: {best_val_score:.4f}/{final_test_score:.4f}/{best_step}\n"
-                print_msg_and_write(out_msg, log_f)
+            out_msg = f"Run: {n_running}/{args.n_runs}, Epoch: {epoch}/{args.n_epochs}, " \
+                      f"Average Train epoch time: {total_time / epoch:.2f}s, " \
+                      f"Average Eval epoch time: {eval_time / eval_num:.2f}s\n" \
+                      f"Loss: {loss:.4f} Train/Val/Test loss: {train_loss:.4f}/{val_loss:.4f}/{test_loss:.4f}\n" \
+                      f"Train/Val/Test: {train_score:.4f}/{val_score:.4f}/{test_score:.4f}\n" \
+                      f"Best val/Final test score/Best Step: {best_val_score:.4f}/{final_test_score:.4f}/{best_step}\n"
+            print_msg_and_write(out_msg, log_f)
+
         if args.advanced_optimizer:
             lr_scheduler.step(val_score)
 
@@ -124,8 +128,9 @@ def run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, n_running,
     print_msg_and_write(out_msg, log_f)
 
     if args.save_pred:
-        os.makedirs("../output", exist_ok=True)
-        torch.save(func.sigmoid(final_pred), f"../output/{n_running}.pt")
+        print_msg_and_write("Saving output with sigmiod at step %d" % best_step, log_f)
+        torch.save(func.sigmoid(final_pred), "%s/output/%s_part%d_epoch%d_output.pt"
+                   % (args.root, version, n_running, best_step))
     return best_val_score, final_test_score
 
 
@@ -201,12 +206,14 @@ def main():
     val_scores, test_scores = list(), list()
     version = str(int(time.time())) if args.log_file_name == "" else "%s_%d" % (args.log_file_name, int(time.time()))
     os.makedirs("%s/log" % args.root, exist_ok=True)
+    if args.save_pred:
+        os.makedirs("%s/output" %args.root, exist_ok=True)
     for i in range(args.n_runs):
         log_f = open("%s/log/%s_part%d.log" % (args.root, version, i), mode='a')
         print_msg_and_write(args.__str__() + "\n", log_f)
         print_msg_and_write("Running for seeds %d" % (args.seed + i), log_f)
         seed(args.seed + i)
-        val_score, test_score = run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, i + 1, log_f)
+        val_score, test_score = run(args, graph, labels, train_idx, val_idx, test_idx, evaluator, i + 1, log_f, version)
         val_scores.append(val_score)
         test_scores.append(test_score)
         log_f.close()
