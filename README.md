@@ -17,7 +17,9 @@ $DARA_DIR : Your data path to store ogbn-proteins dataset
 ```bash
 python -u ./train_gipa.py --root $DARA_DIR --advanced-optimizer --use-sparse-fea 
 ```
-or just
+the ogbn-protein dataset would be downloaded into $DARA_DIR.
+
+Or just
 ```bash
 ./run_deep_wide.sh
 ```
