@@ -30,3 +30,6 @@ the ogbn-protein dataset would be downloaded into current path.
 | GIPA     | 0.9478 | 0.8917 | 17.4M  | Tesla V100 (32GB GPU) |
 
 ## References
++ Houyi Li, Zhihong Chen, Zhao Li, Qinkai Zheng, Peng Zhang, Shuigeng Zhou. (2023). GIPA++: A General Information Propagation Algorithm for Graph Learning
+ https://arxiv.org/abs/2301.08209
++ Qinkai Zheng, Houyi Li, Peng Zhang, Zhixiong Yang, Guowei Zhang, Xintan Zeng, Yongchao Liu. (2021). GIPA: General Information Propagation Algorithm for Graph Learning. https://arxiv.org/abs/2105.06035
