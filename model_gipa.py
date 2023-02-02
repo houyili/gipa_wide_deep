@@ -117,6 +117,7 @@ class GIPAWideConv(nn.Module):
                 graph.edata.update({"attn_edge": attn_edge})
                 e += graph.edata["attn_edge"]
             e = self.edge_att_actv(e)
+            # Deep Attention: more fc-layer can be added after this
 
             # edge drop
             if self.training and self.edge_drop > 0:
